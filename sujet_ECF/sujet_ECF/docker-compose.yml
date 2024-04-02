@@ -1,0 +1,113 @@
+version: "3"
+
+services:
+  # Database
+  bdd:
+    container_name: ecommerce_app_database
+    image: mysql
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: mypass
+      MYSQL_DATABASE: ecommerce_app_database
+      MYSQL_USER: mysqluser
+      MYSQL_PASSWORD: mypass
+    networks:
+      - mysql-phpmyadmin
+
+
+  # phpmyadmin
+  phpmyadmin:
+    depends_on:
+      - bdd
+    image: phpmyadmin
+    restart: always
+    ports:
+      - "8090:80"
+    environment:
+      PMA_HOST: bdd
+    networks:
+      - mysql-phpmyadmin
+
+  #backend authentication
+  authentication-docker-container:
+    container_name: authentication
+    ports:
+      - 7000:8080
+    build:
+      context: ./
+      dockerfile: server/authentication-service/Dockerfile
+    depends_on:
+      - bdd
+    networks:
+      - mysql-phpmyadmin
+
+      #backend common-data
+  commondata-docker-container:
+    container_name: commondata
+    ports:
+      - 9000:8080
+    build:
+      context: ./
+      dockerfile: server/common-data-service/Dockerfile
+    depends_on:
+      - bdd
+    networks:
+      - mysql-phpmyadmin
+
+      #backend payment
+  payment-docker-container:
+    container_name: payment
+    ports:
+      - 9050:8080
+    build:
+      context: ./
+      dockerfile: server/payment-service/Dockerfile
+    depends_on:
+      - bdd
+    networks:
+      - mysql-phpmyadmin
+
+      #backend search
+  search-docker-container:
+    container_name: search
+    ports:
+      - 10000:8080
+    build:
+      context: ./
+      dockerfile: server/search-service/Dockerfile
+    depends_on:
+      - bdd
+    networks:
+      - mysql-phpmyadmin
+
+  # front
+  react-nginx:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: front-react-ecf
+    ports:
+      - 3000:80
+    depends_on:
+      - authentication-docker-container
+      - commondata-docker-container
+      - payment-docker-container
+      - search-docker-container
+    networks:
+      - mysql-phpmyadmin
+
+networks:
+  mysql-phpmyadmin:
+    driver: bridge
+
+volumes:
+  db_data:
+
+
+# docker-compose up -d
+
+# docker-compose down
