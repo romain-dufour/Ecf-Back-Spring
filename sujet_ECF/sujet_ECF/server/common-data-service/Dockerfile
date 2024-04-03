@@ -1,18 +1,18 @@
-FROM maven:3.6 as builder
+FROM maven:3.8.4-openjdk-11 as builder
 
 WORKDIR /app
 
-COPY common-data-service/pom.xml .
+COPY server/common-data-service/pom.xml /app
 RUN mvn dependency:go-offline
 
-COPY common-data-service/src ./src
+COPY server/common-data-service/src ./app/src
 RUN mvn package -DskipTests
 
 FROM openjdk:11
 
 WORKDIR /app
 
-COPY --from=builder /app/target/common-data-service-0.0.1-SNAPSHOT.jar .
+COPY --from=builder /app/target/common-data-service-0.0.1-SNAPSHOT.jar /app/common-data-service-0.0.1-SNAPSHOT.jar
 
 EXPOSE 8080
 
